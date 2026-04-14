@@ -1,63 +1,87 @@
 #include "../include/common.h"
 
-int main(int argc, char const *argv[]) {
-    int sock = 0;
-    struct sockaddr_in serv_addr;
-    char buffer[BUFFER_SIZE] = {0};
-    FILE *file;
+/* ---------------------------------------------------------------
+ * client.c — File-Transfer Client
+ *
+ * Usage:  client.exe <server_ip> <filepath>
+ *
+ * Protocol:
+ *   1. Sends 4-byte little-endian uint32 = filename length
+ *   2. Sends filename bytes (basename only)
+ *   3. Sends raw file bytes, then closes connection
+ * --------------------------------------------------------------- */
 
+int main(int argc, char const *argv[]) {
     if (argc != 3) {
-        printf("Usage: %s <server_ip> <filename>\n", argv[0]);
+        printf("Usage: %s <server_ip> <filepath>\n", argv[0]);
         return -1;
     }
 
+    const char *server_ip = argv[1];
+    const char *filepath  = argv[2];
+
+    /* Extract basename from the provided path */
+    const char *basename = filepath;
+    for (const char *p = filepath; *p; ++p)
+        if (*p == '/' || *p == '\\') basename = p + 1;
+
+    uint32_t name_len = (uint32_t)strlen(basename);
+    if (name_len == 0 || name_len > 255) {
+        printf("[client] Invalid filename.\n");
+        return -1;
+    }
+
+    SOCKET sock = 0;
+    struct sockaddr_in serv_addr;
+    char buffer[BUFFER_SIZE];
+    FILE *file;
+
     init_sockets();
 
-    // Create socket
-    if ((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
-        printf("Socket creation error.\n");
+    if ((sock = socket(AF_INET, SOCK_STREAM, 0)) == INVALID_SOCKET) {
+        printf("[client] Socket creation error.\n");
         return -1;
     }
 
     serv_addr.sin_family = AF_INET;
-    serv_addr.sin_port = htons(PORT);
+    serv_addr.sin_port   = htons(PORT);
 
-    // Convert IPv4 and IPv6 addresses from text to binary form
-    if (inet_pton(AF_INET, argv[1], &serv_addr.sin_addr) <= 0) {
-        printf("Invalid address / Address not supported.\n");
+    if (inet_pton(AF_INET, server_ip, &serv_addr.sin_addr) <= 0) {
+        printf("[client] Invalid address / Address not supported.\n");
         return -1;
     }
 
-    // Connect to server
     if (connect(sock, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0) {
-        printf("Connection Failed.\n");
+        printf("[client] Connection Failed. Is the server running?\n");
         return -1;
     }
 
-    // Open file to send - "rb" reads as binary so it is resilient against data types
-    file = fopen(argv[2], "rb");
-    if (file == NULL) {
-        printf("Cannot open file to send.\n");
+    /* --- Step 1: send filename length (4-byte LE uint32) --- */
+    send(sock, (const char*)&name_len, 4, 0);
+
+    /* --- Step 2: send filename --- */
+    send(sock, basename, (int)name_len, 0);
+
+    /* --- Step 3: open file and send data --- */
+    file = fopen(filepath, "rb");
+    if (!file) {
+        printf("[client] Cannot open file '%s'.\n", filepath);
+        closesocket(sock);
+        cleanup_sockets();
         return -1;
     }
 
-    // Read from file and send to server
+    long total_bytes = 0;
     int bytes_read;
-    while ((bytes_read = fread(buffer, 1, BUFFER_SIZE, file)) > 0) {
+    while ((bytes_read = (int)fread(buffer, 1, BUFFER_SIZE, file)) > 0) {
         send(sock, buffer, bytes_read, 0);
+        total_bytes += bytes_read;
     }
 
-    printf("File sent successfully.\n");
+    printf("[client] Sent '%s' (%ld bytes) to %s successfully.\n", basename, total_bytes, server_ip);
 
     fclose(file);
-
-    // Close socket
-#ifdef _WIN32
     closesocket(sock);
-#else
-    close(sock);
-#endif
-
     cleanup_sockets();
     return 0;
 }
