@@ -4,7 +4,7 @@
  * server.c — Persistent File-Transfer Server
  *
  * Protocol (per connection):
- *   1. Client sends 4-byte little-endian uint32 = filename length
+ *   1. Client sends 4-byte network-order uint32 = filename length
  *   2. Client sends <filename> bytes  (just the basename, no path)
  *   3. Client sends raw file bytes until it closes the connection
  *
@@ -96,9 +96,16 @@ int main(void) {
 
         printf("[server] Client connected.\n");
 
-        /*  Step 1: receive filename length (4 bytes, LE uint32)  */
-        uint32_t name_len = 0;
-        if (recv_all(conn, &name_len, 4) < 0 || name_len == 0 || name_len > 255) {
+        /*  Step 1: receive filename length (4 bytes, network order uint32)  */
+        uint32_t name_len_net = 0;
+        if (recv_all(conn, &name_len_net, 4) < 0) {
+            printf("[server] Bad filename header. Skipping.\n");
+            closesocket(conn);
+            continue;
+        }
+
+        uint32_t name_len = ntohl(name_len_net);
+        if (name_len == 0 || name_len > 255) {
             printf("[server] Bad filename header. Skipping.\n");
             closesocket(conn);
             continue;
@@ -121,9 +128,12 @@ int main(void) {
         printf("[server] Receiving file: %s\n", base);
 
         /*  Step 3: open file and receive data */
-        FILE *file = fopen(base, "wb");
+        char out_filename[512];
+        snprintf(out_filename, sizeof(out_filename), "received_file_%s", base);
+
+        FILE *file = fopen(out_filename, "wb");
         if (!file) {
-            printf("[server] Cannot open '%s' for writing.\n", base);
+            printf("[server] Cannot open '%s' for writing.\n", out_filename);
             closesocket(conn);
             continue;
         }
@@ -131,15 +141,32 @@ int main(void) {
         char buffer[BUFFER_SIZE];
         int bytes_read;
         long total_bytes = 0;
+        int recv_error = 0;
+
         while ((bytes_read = recv(conn, buffer, BUFFER_SIZE, 0)) > 0) {
-            fwrite(buffer, 1, bytes_read, file);
+            if (fwrite(buffer, 1, bytes_read, file) != (size_t)bytes_read) {
+                printf("[server] Failed to write to '%s'.\n", out_filename);
+                recv_error = 1;
+                break;
+            }
             total_bytes += bytes_read;
+        }
+
+        if (bytes_read < 0) {
+            printf("[server] Receive error while reading file data.\n");
+            recv_error = 1;
         }
 
         fclose(file);
         closesocket(conn);
 
-        printf("[server] Saved '%s' (%ld bytes).\n\n", base, total_bytes);
+        if (recv_error) {
+            remove(out_filename);
+            printf("[server] Transfer failed, incomplete file removed.\n\n");
+            continue;
+        }
+
+        printf("[server] Saved '%s' (%ld bytes).\n\n", out_filename, total_bytes);
     }
 
     /* Never reached, but tidy up */
