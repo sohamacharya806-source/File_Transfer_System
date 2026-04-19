@@ -20,7 +20,7 @@ int main(int argc, char const *argv[]) {
     const char *server_ip = argv[1];
     const char *filepath  = argv[2];
 
-    /* Extract basename from the provided path */
+    /* Extract base name from the provided path */
     const char *basename = filepath;
     for (const char *p = filepath; *p; ++p)
         if (*p == '/' || *p == '\\') basename = p + 1;
@@ -56,13 +56,13 @@ int main(int argc, char const *argv[]) {
         return -1;
     }
 
-    /* Step 1: send filename length (4-byte LE uint32)  */
+    /* send filename length (4-byte LE uint32)  */
     send(sock, (const char*)&name_len, 4, 0);
 
-    /*  Step 2: send filename  */
+    /*   send filename  */
     send(sock, basename, (int)name_len, 0);
 
-    /*  Step 3: open file and send data  */
+    /* open file and send data  */
     file = fopen(filepath, "rb");
     if (!file) {
         printf("[client] Cannot open file '%s'.\n", filepath);

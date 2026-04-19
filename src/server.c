@@ -32,7 +32,7 @@
   }
 #endif
 
-/* Receive exactly `n` bytes into `buf`. Returns 0 on success, -1 on failure. */
+/* Receive exactly `n` bytes into `buf`.*/
 static int recv_all(SOCKET s, void *buf, int n) {
     int total = 0;
     char *p = (char*)buf;
@@ -57,7 +57,7 @@ int main(void) {
         return 1;
     }
 
-    /* Allow port reuse so restarting doesn't fail */
+    /* Allow port reuse */
     int opt = 1;
     setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR, (const char*)&opt, sizeof(opt));
 
@@ -96,7 +96,7 @@ int main(void) {
 
         printf("[server] Client connected.\n");
 
-        /*  Step 1: receive filename length (4 bytes, LE uint32)  */
+        /* receive filename length (4 bytes, LE uint32)  */
         uint32_t name_len = 0;
         if (recv_all(conn, &name_len, 4) < 0 || name_len == 0 || name_len > 255) {
             printf("[server] Bad filename header. Skipping.\n");
@@ -104,7 +104,7 @@ int main(void) {
             continue;
         }
 
-        /*  Step 2: receive filename  */
+        /* receive filename  */
         char filename[256] = {0};
         if (recv_all(conn, filename, (int)name_len) < 0) {
             printf("[server] Failed to receive filename. Skipping.\n");
@@ -113,12 +113,12 @@ int main(void) {
         }
         filename[name_len] = '\0';
 
-        /* Prevent path traversal — keep only the basename */
+        /* keep only the basename */
         char *base = filename;
         for (char *p = filename; *p; ++p)
             if (*p == '/' || *p == '\\') base = p + 1;
 
-        /* If no extension, default to .txt */
+        
         char final_name[256];
         strcpy(final_name, base);
         if (strchr(final_name, '.') == NULL) {
@@ -128,10 +128,10 @@ int main(void) {
         printf("[server] Receiving file: %s\n", final_name);
 
 main
-        /*  Step 3: open file and receive data */
+        /*  open file and receive data */
         FILE *file = fopen(base, "wb");
 
-        /*  Step 3: open file and receive data  */
+        / open file and receive data  */
         FILE *file = fopen(final_name, "wb");
  main
         if (!file) {
@@ -154,7 +154,7 @@ main
         printf("[server] Saved '%s' (%ld bytes).\n\n", final_name, total_bytes);
     }
 
-    /* Never reached, but tidy up */
+   
     closesocket(server_fd);
     cleanup_sockets();
     return 0;
