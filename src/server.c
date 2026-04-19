@@ -84,7 +84,7 @@ int main(void) {
     if (t) CloseHandle(t);
 #endif
 
-    /* ---- Main accept loop ---- */
+    /*  Main accept loop  */
     while (1) {
         printf("[server] Waiting for connection...\n");
 
@@ -96,7 +96,7 @@ int main(void) {
 
         printf("[server] Client connected.\n");
 
-        /* --- Step 1: receive filename length (4 bytes, LE uint32) --- */
+        /*  Step 1: receive filename length (4 bytes, LE uint32)  */
         uint32_t name_len = 0;
         if (recv_all(conn, &name_len, 4) < 0 || name_len == 0 || name_len > 255) {
             printf("[server] Bad filename header. Skipping.\n");
@@ -104,7 +104,7 @@ int main(void) {
             continue;
         }
 
-        /* --- Step 2: receive filename --- */
+        /*  Step 2: receive filename  */
         char filename[256] = {0};
         if (recv_all(conn, filename, (int)name_len) < 0) {
             printf("[server] Failed to receive filename. Skipping.\n");
@@ -120,7 +120,7 @@ int main(void) {
 
         printf("[server] Receiving file: %s\n", base);
 
-        /* --- Step 3: open file and receive data --- */
+        /*  Step 3: open file and receive data */
         FILE *file = fopen(base, "wb");
         if (!file) {
             printf("[server] Cannot open '%s' for writing.\n", base);

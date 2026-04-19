@@ -56,13 +56,13 @@ int main(int argc, char const *argv[]) {
         return -1;
     }
 
-    /* --- Step 1: send filename length (4-byte LE uint32) --- */
+    /* Step 1: send filename length (4-byte LE uint32)  */
     send(sock, (const char*)&name_len, 4, 0);
 
-    /* --- Step 2: send filename --- */
+    /*  Step 2: send filename  */
     send(sock, basename, (int)name_len, 0);
 
-    /* --- Step 3: open file and send data --- */
+    /*  Step 3: open file and send data  */
     file = fopen(filepath, "rb");
     if (!file) {
         printf("[client] Cannot open file '%s'.\n", filepath);
