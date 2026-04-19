@@ -1,15 +1,15 @@
 #include "../include/common.h"
 
-/* ---------------------------------------------------------------
- * client.c — File-Transfer Client
- *
- * Usage:  client.exe <server_ip> <filepath>
- *
- * Protocol:
- *   1. Sends 4-byte little-endian uint32 = filename length
- *   2. Sends filename bytes (basename only)
- *   3. Sends raw file bytes, then closes connection
- * --------------------------------------------------------------- */
+/* 
+ client.c — File-Transfer Client
+
+ Usage:  client.exe <server_ip> <filepath>
+
+ Protocol:
+1. Sends 4-byte little-endian uint32 = filename length
+2. Sends filename bytes (basename only)
+3. Sends raw file bytes, then closes connection
+  */
 
 int main(int argc, char const *argv[]) {
     if (argc != 3) {

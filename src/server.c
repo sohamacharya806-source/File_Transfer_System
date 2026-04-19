@@ -1,17 +1,17 @@
 #include "../include/common.h"
 
-/* ---------------------------------------------------------------
- * server.c — Persistent File-Transfer Server
- *
- * Protocol (per connection):
- *   1. Client sends 4-byte little-endian uint32 = filename length
- *   2. Client sends <filename> bytes  (just the basename, no path)
- *   3. Client sends raw file bytes until it closes the connection
- *
- * Server loops forever accepting connections and saving received
- * files under the original filename.
- * Type  "exit"  in this terminal and press Enter to quit.
- * --------------------------------------------------------------- */
+/* 
+ server.c — Persistent File-Transfer Server
+ 
+  Protocol (per connection):
+    1. Client sends 4-byte little-endian uint32 = filename length
+    2. Client sends <filename> bytes  (just the basename, no path)
+    3. Client sends raw file bytes until it closes the connection
+ 
+  Server loops forever accepting connections and saving received
+  files under the original filename.
+  Type  "exit"  in this terminal and press Enter to quit.
+ */
 
 #ifdef _WIN32
   #include <windows.h>
